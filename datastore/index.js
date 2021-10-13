@@ -28,10 +28,22 @@ exports.create = (text, callback) => {
 };
 
 exports.readAll = (callback) => {
-  var data = _.map(items, (text, id) => {
-    return { id, text };
+  fs.readdir(exports.dataDir, (err, fileName) => {
+    if (err) {
+      console.log('error reading files in directory');
+    } else {
+      // console.log(fileName);
+      var data = _.map(fileName, (value) => {
+        return {id: value.split('.').slice(0, -1).join('.'), text: value.split('.').slice(0, -1).join('.')};
+      });
+      // console.log('array of id?', data);
+      callback(null, data);
+    }
   });
-  callback(null, data);
+  // var data = _.map(items, (text, id) => {
+  //   return { id, text };
+  // });
+  // callback(null, data);
 };
 
 exports.readOne = (id, callback) => {
