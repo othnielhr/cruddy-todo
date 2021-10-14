@@ -70,15 +70,17 @@ exports.update = (id, text, callback) => {
   fs.readFile(pathname, (err, data) => {
     if (err) {
       callback(err, null);
+    } else {
+      fs.writeFile(pathname, text, (err) => {
+        if (err) {
+          callback(err, null);
+        } else {
+          // console.log(`changed text: ${text} of id: ${id}`);
+          callback(null, text);
+        }
+      });
     }
-    fs.writeFile(pathname, text, (err) => {
-      if (err) {
-        callback(err, null);
-      } else {
-        // console.log(`changed text: ${text} of id: ${id}`);
-        callback(null, text);
-      }
-    });
+
   });
 
   // old code below
@@ -92,14 +94,31 @@ exports.update = (id, text, callback) => {
 };
 
 exports.delete = (id, callback) => {
-  var item = items[id];
-  delete items[id];
-  if (!item) {
-    // report an error if item not found
-    callback(new Error(`No item with id: ${id}`));
-  } else {
-    callback();
-  }
+
+  var pathname = path.join(exports.dataDir, `${id}.txt`);
+  fs.stat(pathname, (err, stats) => {
+    if (err) {
+      callback(err, null);
+    } else {
+      fs.unlink(pathname, (err) => {
+        if (err) {
+          callback(err, null);
+        }
+        console.log('delete successful');
+      });
+    }
+
+  });
+
+  //old code
+  // var item = items[id];
+  // delete items[id];
+  // if (!item) {
+  //   // report an error if item not found
+  //   callback(new Error(`No item with id: ${id}`));
+  // } else {
+  //   callback();
+  // }
 };
 
 // Config+Initialization code -- DO NOT MODIFY /////////////////////////////////
