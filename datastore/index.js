@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const _ = require('underscore');
 const counter = require('./counter');
+const Promise = require('bluebird');
 
 var items = {};
 
@@ -28,23 +29,68 @@ exports.create = (text, callback) => {
 };
 
 exports.readAll = (callback) => {
-  fs.readdir(exports.dataDir, (err, fileName) => {
-    if (err) {
-      console.log('error reading files in directory');
-    } else {
-      // console.log(fileName);
-      var data = _.map(fileName, (value) => {
-        return {id: value.split('.').slice(0, -1).join('.'), text: value.split('.').slice(0, -1).join('.')};
+
+  return new Promise(function(resolve, reject) {
+    fs.readdir(exports.dataDir, (err, fileName) => {
+      if (err) {
+        console.log('error reading files in directory');
+        reject(err);
+      } else {
+        resolve(fileName);
+      }
+    });
+  })
+    .then( (fileArray) => {
+      return new Promise(function(resolve, reject) {
+        //var files = [];
+        fileArray.map(element => {
+          var pathname = (path.join(exports.dataDir, element));
+          fs.readFile(pathname, 'utf8', (err, content) => {
+            if (err) {
+              reject(err);
+            } else {
+              var format = {id: element.slice(0, 5), text: content};
+              // console.log('format is ', format);
+              files.push(format);
+              resolve(files);
+            }
+          });
+        });
       });
-      // console.log('array of id?', data);
-      callback(null, data);
-    }
-  });
-  // var data = _.map(items, (text, id) => {
-  //   return { id, text };
+    });
+  // add promise.all with fileArray here with a .then with a value that we will callback for readAll
+  // .then((accepting) => {
+  //   return accepting;
   // });
-  // callback(null, data);
 };
+//         fs.readFile(element, 'utf8', (err, content) => {
+//         if (err) {
+//           reject(err);
+//         } else {
+//           console.log('content here', content);
+//           returnArray.push(content);
+//           resolve(returnArray);
+//         }
+//       });
+//     });
+//   });
+// }
+// fs.readdir(exports.dataDir, (err, fileName) => {
+//   if (err) {
+//     console.log('error reading files in directory');
+//   } else {
+//     // console.log(fileName);
+//     var data = _.map(fileName, (value) => {
+//       return {id: value.split('.').slice(0, -1).join('.'), text: value.split('.').slice(0, -1).join('.')};
+//     });
+//     console.log('array of id?', data);
+//     callback(null, data);
+//   }
+// });
+// var data = _.map(items, (text, id) => {
+//   return { id, text };
+// });
+// callback(null, data);
 
 exports.readOne = (id, callback) => {
   var pathname = path.join(exports.dataDir, `${id}.txt`);
@@ -103,8 +149,10 @@ exports.delete = (id, callback) => {
       fs.unlink(pathname, (err) => {
         if (err) {
           callback(err, null);
+        } else {
+          callback(null, exports.dataDir);
+          //console.log('delete successful');
         }
-        console.log('delete successful');
       });
     }
 
