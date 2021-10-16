@@ -3,7 +3,7 @@ const path = require('path');
 const _ = require('underscore');
 const counter = require('./counter');
 const Promise = require('bluebird');
-
+const promisified = Promise.promisifyAll(fs);
 var items = {};
 
 // Public API - Fix these CRUD functions ///////////////////////////////////////
@@ -29,68 +29,64 @@ exports.create = (text, callback) => {
 };
 
 exports.readAll = (callback) => {
-
-  return new Promise(function(resolve, reject) {
-    fs.readdir(exports.dataDir, (err, fileName) => {
-      if (err) {
-        console.log('error reading files in directory');
-        reject(err);
-      } else {
-        resolve(fileName);
-      }
-    });
-  })
-    .then( (fileArray) => {
-      return new Promise(function(resolve, reject) {
-        //var files = [];
-        fileArray.map(element => {
-          var pathname = (path.join(exports.dataDir, element));
-          fs.readFile(pathname, 'utf8', (err, content) => {
-            if (err) {
-              reject(err);
-            } else {
-              var format = {id: element.slice(0, 5), text: content};
-              // console.log('format is ', format);
-              files.push(format);
-              resolve(files);
-            }
+  // var result = [];
+  return promisified.readdirAsync(exports.dataDir)
+    .then((files) => {
+      // console.log('passed in ', files);
+      var fileArray = files.map((file) => {
+        var id = file.slice(0, 5); // 00001
+        return promisified.readFileAsync(path.join(exports.dataDir, file), 'utf8')
+          .then((data) => {
+            // console.log('data ', data);
+            //result.push({id: id, text: data});
+            return {id: id, text: data};
           });
-        });
       });
+      // console.log('result is ', result);
+      Promise.all(fileArray).then((values) => {
+        console.log('values ', values);
+        // console.log('fileArray ', fileArray);
+        callback(null, values);
+      });
+    })
+    .catch((err) => {
+      console.log('error', err);
     });
-  // add promise.all with fileArray here with a .then with a value that we will callback for readAll
-  // .then((accepting) => {
-  //   return accepting;
-  // });
+
+  // return new Promise(function(resolve, reject) {
+  //   fs.readdir(exports.dataDir, (err, fileName) => {
+  //     if (err) {
+  //       console.log('error reading files in directory');
+  //       reject(err);
+  //     } else {
+  //       resolve(fileName);
+  //     }
+  //   });
+  // })
+  //   .then( (fileArray) => {
+  //     return new Promise(function(resolve, reject) {
+  //       var files = [];
+  //       fileArray.forEach(element => {
+  //         var pathname = (path.join(exports.dataDir, element));
+  //         fs.readFile(pathname, 'utf8', (err, content) => {
+  //           if (err) {
+  //             reject(err);
+  //           } else {
+  //             var format = {id: element.slice(0, 5), text: content};
+  //             files.push(format);
+  //             resolve(files);
+  //           }
+  //         });
+  //       });
+  //     })
+  //       .then((data) => {
+  //         console.log('data ', data);
+  //         callback(null, data);
+  //       });
+  //   });
 };
-//         fs.readFile(element, 'utf8', (err, content) => {
-//         if (err) {
-//           reject(err);
-//         } else {
-//           console.log('content here', content);
-//           returnArray.push(content);
-//           resolve(returnArray);
-//         }
-//       });
-//     });
-//   });
-// }
-// fs.readdir(exports.dataDir, (err, fileName) => {
-//   if (err) {
-//     console.log('error reading files in directory');
-//   } else {
-//     // console.log(fileName);
-//     var data = _.map(fileName, (value) => {
-//       return {id: value.split('.').slice(0, -1).join('.'), text: value.split('.').slice(0, -1).join('.')};
-//     });
-//     console.log('array of id?', data);
-//     callback(null, data);
-//   }
-// });
-// var data = _.map(items, (text, id) => {
-//   return { id, text };
-// });
-// callback(null, data);
+
+
 
 exports.readOne = (id, callback) => {
   var pathname = path.join(exports.dataDir, `${id}.txt`);
